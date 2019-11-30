@@ -5,7 +5,7 @@ from flask import current_app, g
 from flask.cli import with_appcontext
 
 
-def getdb():
+def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect(
             current_app.config['DATABASE'],
@@ -21,3 +21,23 @@ def close_db(e=None):
 
     if db is not None:
         db.close()
+
+
+def init_db():
+    db = get_db()
+
+    with current_app.open_resource('schmea.sql') as f:
+        db.executescript(f.read().decode('utf8'))
+
+
+@click.command('init-db')
+@with_appcontext
+def init_db_command():
+    """Clear the existing data and reate new tables."""
+    init_db()
+    click.echo('Initialized the databse')
+
+
+def iniit_app(app):
+    app.teardown_appcontext(close_db)
+    app.cli.add_command(init_db_command)
